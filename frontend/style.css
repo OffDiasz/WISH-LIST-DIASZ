@@ -1,0 +1,105 @@
+/* Estilos personalizados para o tema */
+body {
+    font-family: 'Inter', sans-serif; /* Fonte padrão, pode ser substituída por uma mais "velozes e furiosos" */
+    background-color: #0d0d0d; /* Fundo escuro */
+    color: #e0e0e0; /* Cor do texto principal */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+.btn-primary {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%); /* Gradiente vermelho */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+.btn-primary:hover {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+    transform: translateY(-2px);
+}
+.btn-secondary {
+    background-color: #3b82f6; /* Azul vibrante */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+.btn-secondary:hover {
+    background-color: #2563eb;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+    transform: translateY(-2px);
+}
+/* Estilo para o botão azul meia noite com contorno branco suave */
+.btn-midnight-blue {
+    background-color: #1A1A2E; /* Azul meia noite */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 15px rgba(26, 26, 46, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5); /* Contorno branco suave */
+}
+.btn-midnight-blue:hover {
+    background-color: #121225; /* Um pouco mais escuro no hover */
+    box-shadow: 0 6px 20px rgba(26, 26, 46, 0.6);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.8); /* Borda um pouco mais visível no hover */
+}
+.card {
+    background-color: #1a1a1a; /* Fundo mais claro para cards */
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-in-out;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+input[type="text"], input[type="url"], input[type="email"], input[type="password"], textarea {
+    background-color: #2d2d2d;
+    border: 1px solid #4a4a4a;
+    color: #e0e0e0;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    transition: border-color 0.2s ease-in-out;
+}
+input[type="text"]:focus, input[type="url"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus {
+    border-color: #3b82f6; /* Borda azul ao focar */
+    outline: none;
+}
+.loading-spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #ef4444; /* Cor do spinner */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.modal {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+.modal-content {
+    background-color: #1a1a1a;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.wishlist-item.purchased {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
