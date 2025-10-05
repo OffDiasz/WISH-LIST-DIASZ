@@ -1,7 +1,9 @@
 [build]
-  functions = "netlify/functions"  # Pasta das funções (caso você as use)
-  publish = "."                    # Ponto indica a raiz do repositório
+  functions = "netlify/functions"
+  publish = "."
 
 [functions]
   node_bundler = "esbuild"
-  node_runtime = "nodejs20.x"
+
+  [functions."*"]
+    node_runtime = "nodejs20.x"
