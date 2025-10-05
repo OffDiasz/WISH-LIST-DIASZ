@@ -1,10 +1,7 @@
 [build]
-  # Define o diretório onde o Netlify deve buscar os arquivos estáticos (HTML, CSS, JS)
-  # ATENÇÃO: Substitua pelo caminho real (ex: publish = "/")
-  publish = "Caminho do seu index.html"
+  functions = "netlify/functions"  # Pasta das funções (caso você as use)
+  publish = "."                    # Ponto indica a raiz do repositório
 
 [functions]
-  # Define o diretório onde o Netlify deve buscar as funções serverless
-  directory = "netlify/functions"
-  # Define o tempo limite padrão para todas as funções (30 segundos)
-  timeout = 30
+  node_bundler = "esbuild"
+  node_runtime = "nodejs20.x"
