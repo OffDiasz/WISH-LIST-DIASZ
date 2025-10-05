@@ -7,4 +7,4 @@
   directory = "netlify/functions"
   # Define o tempo limite padrão para todas as funções (30 segundos)
   timeout = 30
-```eof
+
