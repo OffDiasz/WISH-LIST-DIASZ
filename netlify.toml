@@ -1,33 +1,10 @@
 [build]
-  functions = "netlify/functions" # Diz ao Netlify onde encontrar as funções serverless
-  publish = "/" # Assumindo que seu index.html está na raiz
+  # Define o diretório onde o Netlify deve buscar os arquivos estáticos (HTML, CSS, JS)
+  publish = "Caminho do seu index.html"
 
 [functions]
-  node_bundler = "esbuild"
-  node_runtime = "nodejs20.x"
+  # Define o diretório onde o Netlify deve buscar as funções serverless
+  directory = "netlify/functions"
+  # Define o tempo limite padrão para todas as funções (30 segundos)
+  timeout = 30
 ```eof
-
-### Próximos Passos (Implantação Definitiva):
-
-1.  **Estrutura de Pastas:** Organize seus arquivos exatamente como mostrado.
-2.  **Arquivos de Dependência:** Para rodar a Netlify Function, você precisa instalar as dependências. Crie um arquivo `package.json` na **raiz** do seu projeto e liste as dependências:
-    
-    ```json:Package Dependencies:package.json
-    {
-      "name": "wishlist-turbo",
-      "version": "1.0.0",
-      "description": "Wishlist with Supabase and Netlify Functions",
-      "main": "index.html",
-      "dependencies": {
-        "cheerio": "^1.0.0-rc.12",
-        "node-fetch": "^2.6.7"
-      }
-    }
-    ```eof
-3.  **Instale as Dependências Localmente:** No seu terminal, na raiz do projeto, execute:
-    ```bash
-    npm install
-    ```
-4.  **Implante no Netlify:** Faça o commit das suas alterações (`index.html`, `script.js`, `netlify/functions/scrape.js`, `netlify.toml`, `package.json`) e faça o push para o seu repositório Git. O Netlify fará a implantação automática, incluindo a função `scrape.js`.
-
-Após a implantação, a função "Buscar Info" estará ativa e funcional no seu site Netli
