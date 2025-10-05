@@ -1,10 +1,12 @@
 [build]
   # Define o diretório onde o Netlify deve buscar os arquivos estáticos (HTML, CSS, JS)
+  # ATENÇÃO: Substitua pelo caminho real (ex: publish = "/")
   publish = "Caminho do seu index.html"
 
 [functions]
   # Define o diretório onde o Netlify deve buscar as funções serverless
   directory = "netlify/functions"
   # Define o tempo limite padrão para todas as funções (30 segundos)
+  # O Netlify espera um número inteiro simples aqui.
   timeout = 30
-
+```
