@@ -1,7 +1,7 @@
 [build]
   # O seu index.html, style.css e script.js estão na raiz do repositório.
   # O Netlify deve publicar o diretório raiz.
-  publish = "/"
+  publish = "."
 
 [functions]
   # O diretório 'netlify/functions' está na raiz do repositório.
