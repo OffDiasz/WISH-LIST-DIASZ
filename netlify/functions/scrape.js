@@ -1,3 +1,5 @@
+[Immersive content redacted for brevity.]
+
 const { JSDOM } = require('jsdom');
 const axios = require('axios'); // Usando axios, mais robusto para headers
 const { URL } = require('url'); // Necessário para resolver URLs relativas
