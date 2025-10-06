@@ -1,80 +1,71 @@
-[Immersive content redacted for brevity.]
-
+const { JSDOM } = require('jsdom');
 const fetch = require('node-fetch');
-const cheerio = require('cheerio'); // Biblioteca leve de scraping
+const { URL } = require('url'); // Necessário para resolver URLs relativas
 
-// Função para buscar o conteúdo de uma URL
-async function fetchPage(url) {
-    try {
-        const response = await fetch(url, {
-            headers: {
-                // User-Agent é crucial para evitar bloqueios de bots
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-            },
-            timeout: 10000 // Timeout de 10 segundos
-        });
+/**
+ * Função para extrair o título e a imagem de uma URL.
+ * @param {string} url - URL do produto.
+ * @param {string} html - HTML da página.
+ * @returns {{name: string, imageUrl: string}}
+ */
+function extractInfo(url, html) {
+    // 1. Configura o DOM para análise
+    const dom = new JSDOM(html);
+    const doc = dom.window.document;
 
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
-        }
-
-        return response.text();
-    } catch (error) {
-        throw new Error(`Falha na requisição para ${url}: ${error.message}`);
-    }
-}
-
-// Função para extrair nome e imagem
-function extractProductInfo(html, baseUrl) {
-    const $ = cheerio.load(html);
-    let name = '';
+    let title = '';
     let imageUrl = '';
 
-    // 1. Tentar Meta Tags Open Graph (padrão para compartilhamento social/e-commerce)
-    name = $('meta[property="og:title"]').attr('content') || $('title').text();
-    imageUrl = $('meta[property="og:image"]').attr('content');
-
-    // 2. Tentar Meta Tags de Schema.org (Google/SEO)
-    if (!name) {
-        name = $('meta[name="twitter:title"]').attr('content');
-    }
-    if (!imageUrl) {
-        imageUrl = $('meta[name="twitter:image"]').attr('content');
+    // Tenta encontrar o título a partir de várias tags meta comuns
+    const metaTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') ||
+                      doc.querySelector('title')?.textContent;
+    
+    if (metaTitle) {
+        // Limpeza básica do título (remove nome da loja ou caracteres extras)
+        title = metaTitle.trim().replace(/\|.*| -.*| \{.*|\s-\s.*/, '').trim();
     }
 
-    // 3. Tentar elementos HTML comuns (h1, img principal)
-    if (!name) {
-        // Encontra o H1 mais proeminente ou o título do produto
-        name = $('h1').first().text().trim() || $('[itemprop="name"]').first().text().trim();
+    // 2. Tenta encontrar a imagem a partir de tags meta comuns
+    const metaImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
+    
+    if (metaImage) {
+        imageUrl = metaImage;
+    } else {
+        // Fallback: tenta encontrar uma imagem grande com base no schema.org ou classe comum
+        const schemaImage = doc.querySelector('img[itemprop="image"]') || doc.querySelector('.main-product-image');
+        if (schemaImage) {
+            imageUrl = schemaImage.getAttribute('src') || schemaImage.getAttribute('data-src');
+        }
     }
 
-    if (!imageUrl) {
-        // Procura por tags de imagem comuns de produto
-        const imgTag = $('img[itemprop="image"], img.product-main-image, img#main-image').first();
-        if (imgTag.length) {
-            imageUrl = imgTag.attr('src') || imgTag.attr('data-src');
+    // 3. Limpeza Final e Resolução de URL
+    // Converte URL relativa para absoluta, se necessário
+    if (imageUrl && imageUrl.startsWith('/')) {
+        try {
+            // Usa o construtor URL para resolver a URL relativa com base na URL de origem
+            imageUrl = new URL(imageUrl, url).href;
+        } catch (e) {
+            // Se a resolução falhar, usa a URL relativa
         }
     }
     
-    // Converte URL relativa para absoluta (necessário em muitos sites)
-    if (imageUrl && imageUrl.startsWith('/')) {
-        const { URL } = require('url');
-        try {
-            imageUrl = new URL(imageUrl, baseUrl).href;
-        } catch (e) {
-            // Ignora se a URL relativa for inválida
-        }
+    // Se o title ainda estiver vazio, tenta o H1 mais proeminente
+    if (!title) {
+        title = doc.querySelector('h1')?.textContent || '';
     }
 
-    return {
-        name: name ? name.trim().replace(/\s+/g, ' ') : null,
-        imageUrl: imageUrl || null
-    };
+
+    return { name: title ? title.trim() : 'Nome não encontrado', imageUrl: imageUrl || '' };
 }
 
-// Handler principal da Netlify Function
-exports.handler = async (event, context) => {
+
+/**
+ * Função handler da Netlify Function.
+ * @param {object} event - Objeto de evento da requisição.
+ */
+exports.handler = async (event) => {
     // 1. Verificar o método (deve ser POST)
     if (event.httpMethod !== 'POST') {
         return {
@@ -83,40 +74,50 @@ exports.handler = async (event, context) => {
         };
     }
 
-    // 2. Processar o corpo da requisição (JSON)
-    const data = JSON.parse(event.body);
-    const url = data.url;
-
-    if (!url) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: "URL não fornecida no corpo da requisição." }),
-        };
-    }
-
-    // 3. Executar Web Scraping
     try {
-        const html = await fetchPage(url);
-        const productInfo = extractProductInfo(html, url);
+        const body = JSON.parse(event.body);
+        const url = body.url;
 
-        if (!productInfo.name && !productInfo.imageUrl) {
+        if (!url) {
             return {
-                statusCode: 404,
-                body: JSON.stringify({ error: "Não foi possível extrair informações relevantes do produto." }),
+                statusCode: 400,
+                body: JSON.stringify({ error: "URL do produto não fornecida." }),
             };
         }
 
-        // 4. Retornar dados com sucesso
+        // --- 2. Requisição ao Site Alvo (com User-Agent para evitar bloqueio) ---
+        const response = await fetch(url, {
+            headers: {
+                // Simula um navegador Chrome padrão para evitar o bloqueio 403 Forbidden
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            },
+        });
+
+        if (!response.ok) {
+            // Se o site bloquear com 403 (Forbidden), retorna erro específico
+            return {
+                statusCode: 500, // Retorna 500 para indicar falha do lado do servidor (função)
+                body: JSON.stringify({ error: `Falha na requisição ao site: Erro HTTP: ${response.status} ${response.statusText}. O site pode estar bloqueando web scraping.` }),
+            };
+        }
+
+        const html = await response.text();
+
+        // --- 3. Extração das Informações ---
+        const info = extractInfo(url, html);
+
+        // Retorna o JSON com as informações extraídas
         return {
             statusCode: 200,
-            body: JSON.stringify(productInfo),
+            body: JSON.stringify(info),
         };
 
-    } catch (error) {
-        console.error("Erro na Netlify Function:", error);
+    } catch (e) {
+        console.error("Erro fatal no scraping:", e);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `Falha na requisição ao site: ${error.message}` }),
+            body: JSON.stringify({ error: "Erro interno do servidor ao processar o scraping.", details: e.message }),
         };
     }
 };
