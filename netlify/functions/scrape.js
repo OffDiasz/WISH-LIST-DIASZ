@@ -9,6 +9,9 @@ const { URL } = require('url'); // Necessário para resolver URLs relativas
  */
 async function fetchPage(url) {
     try {
+        // Obter o domínio da URL para usar no Referer
+        const urlObject = new URL(url);
+
         const response = await axios.get(url, {
             // Configuração dos headers para simular um navegador real (crucial para Mercado Livre, Pichau, etc.)
             headers: {
@@ -16,7 +19,10 @@ async function fetchPage(url) {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Connection': 'keep-alive'
+                'Connection': 'keep-alive',
+                // NOVOS HEADERS: Essenciais para sites que verificam a origem da requisição
+                'Referer': url, // Faz parecer que estamos vindo da própria página
+                'Origin': urlObject.origin, // Adiciona o domínio como origem
             },
             timeout: 15000 // Aumenta o timeout para 15 segundos
         });
@@ -109,15 +115,14 @@ exports.handler = async (event) => {
 };
 ```eof
 
+---
+
 ### Próximos Passos Finais:
 
 1.  **Atualize `scrape.js`:** Substitua o conteúdo do seu arquivo `netlify/functions/scrape.js` pelo código acima.
-2.  **Verifique as Dependências (Axios):** Você precisa adicionar o `axios` ao seu `package.json` na **raiz** do seu projeto:
+2.  **Verifique Dependências:** Confirme que **`jsdom`** e **`axios`** estão listados no seu `package.json` na raiz.
+3.  **Commit e Push:** Faça o commit e o push dessas alterações para o seu repositório Git.
 
-    ```json:Package Dependencies:package.json
-[Immersive content redacted for brevity.]
-```eof
+Esta é a versão mais robusta de web scraping que pode ser implementada com uma Netlify Function gratuita. Se o bloqueio persistir após essa implantação, infelizmente, o site de destino só permitirá o acesso via serviços de proxy avançados e pagos (que rotacionam endereços IP), o que está além do escopo deste projeto.
 
-3.  **Commit e Push:** Faça o commit dessas alterações (`scrape.js` e `package.json` atualizado) e o push para o seu repositório Git.
-
-Esta versão é a mais otimizada que podemos criar sem o uso de proxies pagos. Se a Pichau ou o Mercado Livre continuarem a bloquear (erro `403`), será necessário preencher o nome e a URL da imagem manualmente. Tente com um link menos agressivo primeiro para confirmar que o web scraping está funcionan
+Tente com o link do Mercado Livre após a implantação! Se falhar, use o campo de preenchimento manual, pois o resto do seu site (login/Supabase/Netlify) está funcionando perfeitamen
