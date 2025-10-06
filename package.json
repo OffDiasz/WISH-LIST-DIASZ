@@ -1,14 +1,13 @@
-    {
-      "name": "wishlist-turbo",
-      "version": "1.0.0",
-      "description": "Netlify function dependencies",
-      "main": "index.js",
-      "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-      },
-      "dependencies": {
-        "cheerio": "^1.0.0-rc.12",
-        "node-fetch": "^2.6.1"
-      }
-    }
-    
+{
+  "name": "wishlist-turbo",
+  "version": "1.0.0",
+  "description": "Netlify function dependencies for web scraping",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "jsdom": "^24.0.0",
+    "node-fetch": "^2.6.1"
+  }
+}
