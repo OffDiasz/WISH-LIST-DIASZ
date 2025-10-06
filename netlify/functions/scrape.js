@@ -1,77 +1,86 @@
 const { JSDOM } = require('jsdom');
-const fetch = require('node-fetch');
+const axios = require('axios'); // Usando axios, mais robusto para headers
 const { URL } = require('url'); // Necessário para resolver URLs relativas
 
 /**
- * Função para extrair o título e a imagem de uma URL.
+ * Função para buscar o HTML da página com headers robustos.
  * @param {string} url - URL do produto.
- * @param {string} html - HTML da página.
- * @returns {{name: string, imageUrl: string}}
+ * @returns {Promise<string>} - HTML da página.
+ */
+async function fetchPage(url) {
+    try {
+        const response = await axios.get(url, {
+            // Configuração dos headers para simular um navegador real (crucial para Mercado Livre, Pichau, etc.)
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Connection': 'keep-alive'
+            },
+            timeout: 15000 // Aumenta o timeout para 15 segundos
+        });
+
+        if (response.status === 403) {
+             throw new Error(`Erro HTTP: 403 Forbidden. O site bloqueou a requisição.`);
+        }
+        
+        // Axios retorna a resposta no objeto 'data'
+        return response.data; 
+    } catch (error) {
+        let errorMessage = error.message;
+        if (error.response) {
+             errorMessage = `Erro HTTP: ${error.response.status} ${error.response.statusText}. O site bloqueou a requisição.`;
+        }
+        throw new Error(`Falha na requisição para ${url}: ${errorMessage}`);
+    }
+}
+
+/**
+ * Função para extrair o título e a imagem de uma URL.
  */
 function extractInfo(url, html) {
-    // 1. Configura o DOM para análise
     const dom = new JSDOM(html);
     const doc = dom.window.document;
-
     let title = '';
     let imageUrl = '';
 
-    // Tenta encontrar o título a partir de várias tags meta comuns
-    const metaTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
-                      doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') ||
-                      doc.querySelector('title')?.textContent;
-    
-    if (metaTitle) {
-        // Limpeza básica do título (remove nome da loja ou caracteres extras)
-        title = metaTitle.trim().replace(/\|.*| -.*| \{.*|\s-\s.*/, '').trim();
+    // 1. Tentar Meta Tags Open Graph (mais confiável em e-commerce)
+    title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || doc.querySelector('title')?.textContent;
+    imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+
+    // 2. Tentar Tags de Schema.org ou H1
+    if (!title) {
+        title = doc.querySelector('[itemprop="name"]')?.textContent || doc.querySelector('h1')?.textContent || 'Nome não encontrado';
+    }
+    if (!imageUrl) {
+        imageUrl = doc.querySelector('[itemprop="image"]')?.getAttribute('src') || doc.querySelector('img.main-product-image')?.getAttribute('src');
     }
 
-    // 2. Tenta encontrar a imagem a partir de tags meta comuns
-    const metaImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
-                      doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
-    
-    if (metaImage) {
-        imageUrl = metaImage;
-    } else {
-        // Fallback: tenta encontrar uma imagem grande com base no schema.org ou classe comum
-        const schemaImage = doc.querySelector('img[itemprop="image"]') || doc.querySelector('.main-product-image');
-        if (schemaImage) {
-            imageUrl = schemaImage.getAttribute('src') || schemaImage.getAttribute('data-src');
-        }
-    }
-
-    // 3. Limpeza Final e Resolução de URL
-    // Converte URL relativa para absoluta, se necessário
+    // 3. Limpeza e Resolução de URL
     if (imageUrl && imageUrl.startsWith('/')) {
         try {
-            // Usa o construtor URL para resolver a URL relativa com base na URL de origem
             imageUrl = new URL(imageUrl, url).href;
         } catch (e) {
-            // Se a resolução falhar, usa a URL relativa
+            // Ignora erro de URL
         }
     }
     
-    // Se o title ainda estiver vazio, tenta o H1 mais proeminente
-    if (!title) {
-        title = doc.querySelector('h1')?.textContent || '';
+    // Limpeza final do título
+    if (title) {
+        title = title.trim().replace(/\|.*| -.*| \{.*|\s-\s.*/, '').trim();
     }
 
-
-    return { name: title ? title.trim() : 'Nome não encontrado', imageUrl: imageUrl || '' };
+    return { name: title || 'Nome não encontrado', imageUrl: imageUrl || '' };
 }
 
 
 /**
- * Função handler da Netlify Function.
- * @param {object} event - Objeto de evento da requisição.
+ * Handler principal da Netlify Function.
  */
 exports.handler = async (event) => {
-    // 1. Verificar o método (deve ser POST)
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: "Método não permitido. Use POST." }),
-        };
+        return { statusCode: 405, body: JSON.stringify({ error: "Método não permitido. Use POST." }) };
     }
 
     try {
@@ -79,45 +88,36 @@ exports.handler = async (event) => {
         const url = body.url;
 
         if (!url) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ error: "URL do produto não fornecida." }),
-            };
+            return { statusCode: 400, body: JSON.stringify({ error: "URL do produto não fornecida." }) };
         }
 
-        // --- 2. Requisição ao Site Alvo (com User-Agent para evitar bloqueio) ---
-        const response = await fetch(url, {
-            headers: {
-                // Simula um navegador Chrome padrão para evitar o bloqueio 403 Forbidden
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-            },
-        });
-
-        if (!response.ok) {
-            // Se o site bloquear com 403 (Forbidden), retorna erro específico
-            return {
-                statusCode: 500, // Retorna 500 para indicar falha do lado do servidor (função)
-                body: JSON.stringify({ error: `Falha na requisição ao site: Erro HTTP: ${response.status} ${response.statusText}. O site pode estar bloqueando web scraping.` }),
-            };
-        }
-
-        const html = await response.text();
-
-        // --- 3. Extração das Informações ---
+        const html = await fetchPage(url);
         const info = extractInfo(url, html);
 
-        // Retorna o JSON com as informações extraídas
         return {
             statusCode: 200,
             body: JSON.stringify(info),
         };
 
     } catch (e) {
-        console.error("Erro fatal no scraping:", e);
+        console.error("Erro fatal no scraping:", e.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "Erro interno do servidor ao processar o scraping.", details: e.message }),
+            body: JSON.stringify({ error: `Falha na requisição ao site: ${e.message}` }),
         };
     }
 };
+```eof
+
+### Próximos Passos Finais:
+
+1.  **Atualize `scrape.js`:** Substitua o conteúdo do seu arquivo `netlify/functions/scrape.js` pelo código acima.
+2.  **Verifique as Dependências (Axios):** Você precisa adicionar o `axios` ao seu `package.json` na **raiz** do seu projeto:
+
+    ```json:Package Dependencies:package.json
+[Immersive content redacted for brevity.]
+```eof
+
+3.  **Commit e Push:** Faça o commit dessas alterações (`scrape.js` e `package.json` atualizado) e o push para o seu repositório Git.
+
+Esta versão é a mais otimizada que podemos criar sem o uso de proxies pagos. Se a Pichau ou o Mercado Livre continuarem a bloquear (erro `403`), será necessário preencher o nome e a URL da imagem manualmente. Tente com um link menos agressivo primeiro para confirmar que o web scraping está funcionan
