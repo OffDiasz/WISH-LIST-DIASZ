@@ -1,9 +1,10 @@
 [build]
-  functions = "netlify/functions"
+  # O seu index.html, style.css e script.js estão na raiz do repositório.
+  # O Netlify deve publicar o diretório raiz.
   publish = "/"
 
 [functions]
-  node_bundler = "esbuild"
-
-  [functions."*"]
-    node_runtime = "nodejs20.x"
+  # O diretório 'netlify/functions' está na raiz do repositório.
+  directory = "netlify/functions"
+  # Define o tempo limite padrão para todas as funções (30 segundos)
+  timeout = 30
