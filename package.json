@@ -1,0 +1,10 @@
+{
+  "name": "wish-list-diasz",
+  "version": "1.0.0",
+  "description": "Wishlist com função scrape no Netlify",
+  "main": "index.html",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "node-fetch": "^2.6.7"
+  }
+}
