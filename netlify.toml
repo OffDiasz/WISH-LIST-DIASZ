@@ -6,5 +6,3 @@
 [functions]
   # O diretório 'netlify/functions' está na raiz do repositório.
   directory = "netlify/functions"
-  # Define o tempo limite padrão para todas as funções (30 segundos)
-  timeout = 30
