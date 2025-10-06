@@ -1,3 +1,5 @@
+[Immersive content redacted for brevity.]
+
 const fetch = require('node-fetch');
 const cheerio = require('cheerio'); // Biblioteca leve de scraping
 
